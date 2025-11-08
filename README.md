@@ -64,3 +64,7 @@ python queuectl.py worker start --count 2
 # 7.  View dead (failed) jobs in the Dead Letter Queue
 python queuectl.py dlq list
 
+```
+
+## Working video :
+https://drive.google.com/file/d/12jFIISSRHttM57Qh9x_WWTz3QGpGUGSc/view?usp=sharing
