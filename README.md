@@ -17,7 +17,7 @@ It provides a simple yet robust way to **enqueue shell commands**, **run them in
 ---
 
 ## 📁 Project Structure
-QueueCTL/
+QueueCTL/<br>
 │<br>
 ├── queuectl.py <br>
 ├── requirements.txt <br>
