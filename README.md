@@ -1,4 +1,4 @@
-# ⚙️ QueueCTL — A Lightweight Python Job Queue System
+#  QueueCTL — A Lightweight Python Job Queue System
 
 QueueCTL is a **CLI-based job queue manager** written in Python.  
 It provides a simple yet robust way to **enqueue shell commands**, **run them in the background**, and **handle retries and failures** — all using a lightweight **SQLite database** as a backend.
@@ -6,7 +6,7 @@ It provides a simple yet robust way to **enqueue shell commands**, **run them in
 
 ---
 
-## 🧩 Features
+##  Features
 
 ✅ **Persistent Queue** — backed by SQLite (`queuectl.db`)  
 ✅ **Multiple Workers** — run concurrent jobs in parallel  
@@ -16,7 +16,7 @@ It provides a simple yet robust way to **enqueue shell commands**, **run them in
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 QueueCTL/<br>
 │<br>
 ├── queuectl.py <br>
@@ -26,7 +26,7 @@ QueueCTL/<br>
 
 ---
 
-## ⚙️ Installation
+##  Installation
 
 Clone this repository and install dependencies.
 
@@ -34,3 +34,33 @@ Clone this repository and install dependencies.
 git clone https://github.com/anuvindmp/QueueCTL.git
 cd QueueCTL
 pip install -r requirements.txt
+
+
+---
+
+##  Example Usage — Test All Functionalities
+
+Follow these steps to test **QueueCTL** end-to-end:
+
+```bash
+# 1. Start fresh — delete old database
+del queuectl.db
+
+# 2. Initialize a new database
+python queuectl.py init
+
+# 3.  Enqueue a successful job
+python queuectl.py enqueue --command "echo hello from job-ok"
+
+# 4.  Enqueue a failing job (with 2 retries)
+python queuectl.py enqueue --command "cmd /c exit 1" --max-retries 2
+
+# 5.  List all jobs currently in the queue
+python queuectl.py list
+
+# 6.  Start two workers to process jobs
+python queuectl.py worker start --count 2
+
+# 7.  View dead (failed) jobs in the Dead Letter Queue
+python queuectl.py dlq list
+
