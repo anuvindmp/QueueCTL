@@ -4,7 +4,7 @@ QueueCTL is a **CLI-based job queue manager** written in Python.
 It provides a simple yet robust way to **enqueue shell commands**, **run them in the background**, and **handle retries and failures** — all using a lightweight **SQLite database** as a backend.
 
 
----
+
 
 ##  Features
 
@@ -14,7 +14,7 @@ It provides a simple yet robust way to **enqueue shell commands**, **run them in
 ✅ **Dead Letter Queue (DLQ)** — stores permanently failed jobs  
 ✅ **Simple CLI Interface** 
 
----
+
 
 ##  Project Structure
 QueueCTL/<br>
@@ -24,7 +24,7 @@ QueueCTL/<br>
 ├── README.md<br>
 └── queuectl.db <br>
 
----
+
 
 ##  Installation
 
@@ -34,9 +34,9 @@ Clone this repository and install dependencies.
 git clone https://github.com/anuvindmp/QueueCTL.git
 cd QueueCTL
 pip install -r requirements.txt
+```
 
 
----
 
 ##  Example Usage — Test All Functionalities
 
