@@ -1,17 +1,3 @@
-#!/usr/bin/env python3
-"""
-queuectl.py - Simple CLI job queue with workers, retries (exponential backoff), DLQ and persistence.
-
-Usage examples:
-    python queuectl.py enqueue '{"id":"job1","command":"sleep 2","max_retries":3}'
-    python queuectl.py worker start --count 2
-    python queuectl.py status
-    python queuectl.py list --state pending
-    python queuectl.py dlq list
-    python queuectl.py dlq retry job1
-    python queuectl.py config set backoff_base 2
-"""
-
 import os
 import sys
 import json
@@ -32,7 +18,7 @@ DB_PATH = Path(DB_FILE)
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_BACKOFF_BASE = 2
 WORKERS_TRACK_FILE = Path("workers.json")
-POLL_INTERVAL = 1.0  # seconds between attempting to claim a job
+POLL_INTERVAL = 1.0  
 
 # ----- Utility helpers -----------------------------------------------------
 
@@ -49,8 +35,7 @@ def ensure_dir_for(path: Path):
 # ----- Database layer -----------------------------------------------------
 
 def get_conn():
-    # Each process should call get_conn() to get its own connection.
-    conn = sqlite3.connect(str(DB_PATH), timeout=30, isolation_level=None)  # autocommit mode when using explicit BEGIN
+    conn = sqlite3.connect(str(DB_PATH), timeout=30, isolation_level=None) 
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -90,7 +75,7 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print("✅ Database initialized successfully.")
+    print("Database initialized.")
 
 
 
@@ -159,7 +144,6 @@ def status_summary():
     for s in ("pending", "processing", "completed", "failed", "dead"):
         cur.execute("SELECT COUNT(*) as cnt FROM jobs WHERE state = ?", (s,))
         counts[s] = cur.fetchone()["cnt"]
-    # active workers
     workers = []
     if WORKERS_TRACK_FILE.exists():
         try:
@@ -170,7 +154,6 @@ def status_summary():
     conn.close()
     return counts, workers
 
-# Atomic claim function: returns job row dict or None
 def claim_next_job(worker_id):
     """
     Attempt to claim a job. This is done in a small transaction:
@@ -200,10 +183,8 @@ def claim_next_job(worker_id):
         WHERE id=? AND state='pending'
         """, (worker_id, now, now, job_id))
         if cur.rowcount != 1:
-            # someone else grabbed it
             conn.commit()
             return None
-        # fetch full row
         cur.execute("SELECT * FROM jobs WHERE id = ?", (job_id,))
         job = dict(cur.fetchone())
         conn.commit()
@@ -235,7 +216,6 @@ def record_failed_attempt(job_id, error_message, attempts, max_retries, backoff_
     cur = conn.cursor()
     now = datetime.now(timezone.utc)
     if attempts > max_retries:
-        # move to dead
         cur.execute("""
         UPDATE jobs
         SET state = 'dead', attempts = ?, updated_at = ?, last_error = ?
@@ -268,7 +248,6 @@ def reset_job_from_dlq(job_id):
 
 # ----- Worker logic ------------------------------------------------------
 
-# We'll use a global flag for each worker process to stop gracefully on signal
 _worker_should_stop = False
 
 def _worker_signal_handler(signum, frame):
@@ -279,14 +258,13 @@ def worker_process_loop(worker_name, poll_interval=POLL_INTERVAL, job_timeout=No
     """
     Loop executed inside each worker process.
     """
-    # setup signal handler to gracefully stop after finishing current job
+
     signal.signal(signal.SIGINT, _worker_signal_handler)
     signal.signal(signal.SIGTERM, _worker_signal_handler)
 
     cfg = db_get_config()
     backoff_base = cfg.get("backoff_base", DEFAULT_BACKOFF_BASE)
 
-    # each process must have its own DB connection inside functions; claim_next_job does that.
     while not _worker_should_stop:
         try:
             job = claim_next_job(worker_name)
@@ -298,9 +276,7 @@ def worker_process_loop(worker_name, poll_interval=POLL_INTERVAL, job_timeout=No
             attempts = int(job["attempts"]) + 1
             max_retries = int(job["max_retries"])
             click.echo(f"[{worker_name}] Claimed job {job_id}: {command} (attempt {attempts}/{max_retries})")
-            # execute the job
             try:
-                # run command in shell for flexibility (assignment expects commands like sleep/echo)
                 completed = subprocess.run(command, shell=True, capture_output=True, timeout=job_timeout)
                 stdout_text = (completed.stdout.decode(errors='ignore') if completed.stdout else "")
                 stderr_text = (completed.stderr.decode(errors='ignore') if completed.stderr else "")
@@ -331,7 +307,6 @@ def spawn_workers(count, base_name="worker"):
         p = Process(target=worker_process_loop, args=(name,), daemon=False)
         p.start()
         procs.append({"pid": p.pid, "name": name})
-    # record PIDs to disk for 'stop' and 'status' commands
     try:
         with open(WORKERS_TRACK_FILE, "w") as f:
             json.dump(procs, f)
@@ -350,7 +325,6 @@ def stop_workers(grace_seconds=10):
     except Exception as e:
         click.echo(f"Could not read workers file: {e}", err=True)
         return
-    # Send SIGINT to each pid to allow graceful shutdown
     for rec in procs:
         pid = rec.get("pid")
         try:
@@ -360,7 +334,6 @@ def stop_workers(grace_seconds=10):
             click.echo(f"Process {pid} not found")
         except Exception as e:
             click.echo(f"Failed to signal pid {pid}: {e}", err=True)
-    # wait for them to exit (best-effort)
     t0 = time.time()
     while time.time() - t0 < grace_seconds:
         running = []
@@ -376,7 +349,6 @@ def stop_workers(grace_seconds=10):
         if not running:
             break
         time.sleep(0.5)
-    # Remove worker tracking file
     try:
         WORKERS_TRACK_FILE.unlink()
     except Exception:
@@ -389,7 +361,6 @@ def stop_workers(grace_seconds=10):
 def cli():
     init_db()
 
-# Enqueue: accept JSON string or --id/--command flags
 @cli.command(help="Enqueue a new job. Provide a JSON string or use --id and --command.")
 @click.argument("job_json", required=False)
 @click.option("--id", "job_id", required=False, help="Job ID (optional, will be generated if missing).")
@@ -416,7 +387,6 @@ def enqueue(job_json, job_id, command, max_retries):
         click.echo(f"Failed to enqueue: {e}", err=True)
         sys.exit(1)
 
-# Start workers
 @cli.group(help="Worker operations")
 def worker():
     pass
@@ -465,7 +435,6 @@ def list(state, limit):
         if r.get("last_error"):
             click.echo(f"    last_error: {r['last_error'][:200]}")
 
-# DLQ commands
 @cli.group(help="Dead Letter Queue operations")
 def dlq():
     pass
@@ -489,7 +458,6 @@ def dlq_retry(job_id):
         click.echo(f"Job {job_id} not found in DLQ (or not dead).", err=True)
         sys.exit(1)
 
-# Config commands
 @cli.group(help="Configuration settings")
 def config():
     pass
@@ -507,12 +475,11 @@ def config_get():
     for k, v in cfg.items():
         click.echo(f"{k} = {v}")
 
-# init/maintenance command
 @cli.command(help="Initialize database (runs automatically at startup)")
 def init():
     init_db()
     click.echo(f"Database initialized at {DB_PATH}")
 
-# entrypoint
+
 if __name__ == "__main__":
     cli()
