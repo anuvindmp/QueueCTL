@@ -18,11 +18,11 @@ It provides a simple yet robust way to **enqueue shell commands**, **run them in
 
 ## 📁 Project Structure
 QueueCTL/
-│
-├── queuectl.py 
-├── requirements.txt 
-├── README.md
-└── queuectl.db 
+│<br>
+├── queuectl.py <br>
+├── requirements.txt <br>
+├── README.md<br>
+└── queuectl.db <br>
 
 ---
 
