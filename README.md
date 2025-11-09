@@ -53,7 +53,7 @@ python queuectl.py init
 python queuectl.py enqueue --command "echo hello from job-ok"
 
 # 4.  Enqueue a failing job (with 2 retries)
-python queuectl.py enqueue --command "cmd /c exit 1" --max-retries 2
+python queuectl.py enqueue --command "not_a_real_command" --max-retries 2
 
 # 5.  List all jobs currently in the queue
 python queuectl.py list
