@@ -53,7 +53,7 @@ python queuectl.py init
 python queuectl.py enqueue --command "echo hello from job-ok"
 
 # 4.  Enqueue a failing job (with 2 retries)
-python queuectl.py enqueue --command "not_a_real_command" --max-retries 2
+python queuectl.py enqueue --command "random_stuff_that_wont_work" --max-retries 2
 
 # 5.  List all jobs currently in the queue
 python queuectl.py list
@@ -66,7 +66,7 @@ python queuectl.py dlq list
 
 # 8 Retry DLQ
 python queuectl.py dlq retry <job_id>
-
+after this the job in dlq will be moved to pending. to view the pending queue try command #5 and to execute try the command #6
 
 ```
 
