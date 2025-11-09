@@ -209,18 +209,23 @@ def mark_job_completed(job_id, stdout_text=None, stderr_text=None):
 
 def record_failed_attempt(job_id, error_message, attempts, max_retries, backoff_base):
     """
-    Update job after a failed run. If attempts > max_retries => mark dead.
+    Update job after a failed run. If attempts > max_retries => mark dead and stop workers.
     Else set next_retry_at to now + backoff_base ** attempts seconds and state back to pending.
     """
     conn = get_conn()
     cur = conn.cursor()
     now = datetime.now(timezone.utc)
+
     if attempts > max_retries:
         cur.execute("""
         UPDATE jobs
         SET state = 'dead', attempts = ?, updated_at = ?, last_error = ?
         WHERE id = ?
         """, (attempts, now.isoformat(), error_message[:1000], job_id))
+        conn.commit()
+        conn.close()
+        click.echo(f"[!] Job {job_id} exceeded retries and moved to DLQ. Exiting worker.")
+        sys.exit(0)
     else:
         delay_seconds = backoff_base ** attempts
         next_retry = (now + timedelta(seconds=delay_seconds)).isoformat()
@@ -229,8 +234,9 @@ def record_failed_attempt(job_id, error_message, attempts, max_retries, backoff_
         SET state = 'pending', attempts = ?, updated_at = ?, last_error = ?, next_retry_at = ?
         WHERE id = ?
         """, (attempts, now.isoformat(), error_message[:1000], next_retry, job_id))
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
+
 
 def reset_job_from_dlq(job_id):
     conn = get_conn()
@@ -363,9 +369,9 @@ def cli():
 
 @cli.command(help="Enqueue a new job. Provide a JSON string or use --id and --command.")
 @click.argument("job_json", required=False)
-@click.option("--id", "job_id", required=False, help="Job ID (optional, will be generated if missing).")
-@click.option("--command", required=False, help="Command to run (e.g. \"sleep 2\").")
-@click.option("--max-retries", type=int, required=False, help="Per-job max retries.")
+@click.option("--id", "job_id", required=False)
+@click.option("--command", required=False)
+@click.option("--max-retries", type=int)
 def enqueue(job_json, job_id, command, max_retries):
     if job_json:
         try:
