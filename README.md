@@ -64,6 +64,10 @@ python queuectl.py worker start --count 2
 # 7.  View dead (failed) jobs in the Dead Letter Queue
 python queuectl.py dlq list
 
+# 8 Retry DLQ
+python queuectl.py dlq retry <job_id>
+
+
 ```
 
 ## Working video :
